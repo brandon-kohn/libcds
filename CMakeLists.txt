@@ -171,7 +171,7 @@ set(SOURCES src/init.cpp
             src/dllmain.cpp)
 
 if(WIN32)
-    add_definitions(-DCDS_BUILD_LIB -D_ENABLE_ATOMIC_ALIGNMENT_FIX -DCDS_ENABLE_HPSTAT)
+    add_definitions(-D_ENABLE_ATOMIC_ALIGNMENT_FIX -DCDS_ENABLE_HPSTAT)
 endif()
 
 add_library(${CDS_SHARED_LIBRARY} SHARED ${SOURCES})
