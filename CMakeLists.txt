@@ -176,13 +176,16 @@ set(SOURCES src/init.cpp
             src/dllmain.cpp)
 
 if(WIN32)
-    add_definitions(-DCDS_BUILD_LIB -D_ENABLE_ATOMIC_ALIGNMENT_FIX -DCDS_ENABLE_HPSTAT)
+    add_definitions(-D_ENABLE_ATOMIC_ALIGNMENT_FIX -DCDS_ENABLE_HPSTAT)
 endif()
 
 add_library(${CDS_SHARED_LIBRARY} SHARED ${SOURCES})
+target_compile_definitions(${CDS_SHARED_LIBRARY} PRIVATE -DCDS_BUILD_LIB)
 set_target_properties(${CDS_SHARED_LIBRARY} PROPERTIES VERSION ${PROJECT_VERSION}
         DEBUG_POSTFIX "_d")
 add_library(${CDS_STATIC_LIBRARY} STATIC ${SOURCES})
+target_compile_definitions(${CDS_STATIC_LIBRARY} PRIVATE -DCDS_BUILD_STATIC)
+
 set_target_properties(${CDS_STATIC_LIBRARY} PROPERTIES DEBUG_POSTFIX "_d")
 target_link_libraries(${CDS_SHARED_LIBRARY} PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(${CDS_STATIC_LIBRARY} PRIVATE ${CMAKE_THREAD_LIBS_INIT})

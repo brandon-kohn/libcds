@@ -150,10 +150,14 @@
 #endif
 
 #if CDS_OS_TYPE == CDS_OS_MINGW
-#   ifdef CDS_BUILD_LIB
-#       define CDS_EXPORT_API          __declspec(dllexport)
+#   if defined(CDS_BUILD_STATIC) || defined(CDS_USE_STATIC_LIB)
+#       define CDS_EXPORT_API 
 #   else
-#       define CDS_EXPORT_API          __declspec(dllimport)
+#       ifdef CDS_BUILD_LIB
+#           define CDS_EXPORT_API          __declspec(dllexport)
+#       else
+#           define CDS_EXPORT_API          __declspec(dllimport)
+#       endif
 #   endif
 #else
 #   ifndef __declspec

@@ -18,3 +18,7 @@
 /projects/Win/vc14/cds.VC.db
 /.cproject
 /.settings/
+/*.swp
+/cds/compiler/gcc/*.swp
+/cds/compiler/icl/*.swp
+/cds/compiler/vc/*.swp
