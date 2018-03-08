@@ -44,11 +44,11 @@ if(LIBCDS_WITH_BOOST_ATOMIC)
         link_libraries(boost::atomic)
     else()
         find_package(Boost 1.53 COMPONENTS atomic)
-        if(Boost_FOUND)
+    if(Boost_FOUND)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCDS_USE_BOOST_ATOMIC")
             message(STATUS "Boost version allows using of boost.atomic: activated")
         endif()
-    endif()
+        endif()
 endif(LIBCDS_WITH_BOOST_ATOMIC)
 
 if(LIBCDS_WITH_ASAN)
@@ -197,11 +197,28 @@ target_compile_options(${CDS_STATIC_LIBRARY} PUBLIC "${LIBCDS_PUBLIC_CXX_FLAGS}"
 target_compile_options(${CDS_SHARED_LIBRARY} PRIVATE "${LIBCDS_PRIVATE_CXX_FLAGS}")
 target_compile_options(${CDS_STATIC_LIBRARY} PRIVATE "${LIBCDS_PRIVATE_CXX_FLAGS}")
 
-if(NOT DISABLE_INSTALL_SHARED)
-    install(TARGETS ${CDS_SHARED_LIBRARY} EXPORT LibCDSConfig RUNTIME DESTINATION bin ARCHIVE DESTINATION lib LIBRARY DESTINATION lib${LIB_SUFFIX} COMPONENT ${LIBRARIES_COMPONENT} NAMELINK_SKIP)
-    install(TARGETS ${CDS_SHARED_LIBRARY} EXPORT LibCDSConfig RUNTIME DESTINATION bin ARCHIVE DESTINATION lib LIBRARY DESTINATION lib${LIB_SUFFIX} COMPONENT ${HEADERS_COMPONENT} NAMELINK_ONLY)
-    install(TARGETS ${CDS_STATIC_LIBRARY} EXPORT LibCDSConfig DESTINATION lib${LIB_SUFFIX} COMPONENT ${LIBRARIES_COMPONENT})
-endif()
+# use, i.e. don't skip the full RPATH for the build tree
+SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
+
+# when building, don't use the install RPATH already
+# (but later on when installing)
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) 
+
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
+# add the automatically determined parts of the RPATH
+# which point to directories outside the build tree to the install RPATH
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# the RPATH to be used when installing, but only if it's not a system directory
+LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+IF("${isSystemDir}" STREQUAL "-1")
+   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+ENDIF("${isSystemDir}" STREQUAL "-1")
+
+install(TARGETS ${CDS_SHARED_LIBRARY} EXPORT LibCDSConfig LIBRARY DESTINATION lib${LIB_SUFFIX} COMPONENT ${LIBRARIES_COMPONENT} NAMELINK_SKIP)
+install(TARGETS ${CDS_SHARED_LIBRARY} EXPORT LibCDSConfig LIBRARY DESTINATION lib${LIB_SUFFIX} COMPONENT ${HEADERS_COMPONENT} NAMELINK_ONLY)
+install(TARGETS ${CDS_STATIC_LIBRARY} EXPORT LibCDSConfig DESTINATION lib${LIB_SUFFIX} COMPONENT ${LIBRARIES_COMPONENT})
 install(EXPORT LibCDSConfig FILE LibCDSConfig.cmake NAMESPACE LibCDS:: DESTINATION lib/cmake/LibCDS)
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/cds DESTINATION include COMPONENT ${HEADERS_COMPONENT})
 
