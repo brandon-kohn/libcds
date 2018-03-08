@@ -96,11 +96,16 @@
 
 #define  __attribute__( _x )
 
-#ifdef CDS_BUILD_LIB
-#   define CDS_EXPORT_API          __declspec(dllexport)
-#else
-#   define CDS_EXPORT_API          __declspec(dllimport)
-#endif
+#   if defined(CDS_BUILD_STATIC) || defined(CDS_USE_STATIC_LIB)
+#       define CDS_EXPORT_API 
+#   else
+#       ifdef CDS_BUILD_LIB
+#           define CDS_EXPORT_API          __declspec(dllexport)
+#       else
+#           define CDS_EXPORT_API          __declspec(dllimport)
+#       endif
+#   endif
+
 
 #define alignof     __alignof
 

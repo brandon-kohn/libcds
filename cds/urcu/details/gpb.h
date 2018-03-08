@@ -125,7 +125,7 @@ namespace cds { namespace urcu {
 
         ~general_buffered()
         {
-            clear_buffer( std::numeric_limits< uint64_t >::max());
+            clear_buffer( (std::numeric_limits< uint64_t >::max)());
         }
 
         void flip_and_wait()
@@ -178,7 +178,7 @@ namespace cds { namespace urcu {
         static void Destruct( bool bDetachAll = false )
         {
             if ( isUsed()) {
-                instance()->clear_buffer( std::numeric_limits< uint64_t >::max());
+                instance()->clear_buffer( (std::numeric_limits< uint64_t >::max)());
                 if ( bDetachAll )
                     instance()->m_ThreadList.detach_all();
                 delete instance();
