@@ -1,43 +1,16 @@
-/*
-    This file is a part of libcds - Concurrent Data Structures library
-
-    (C) Copyright Maxim Khizhinsky (libcds.dev@gmail.com) 2006-2017
-
-    Source code repo: http://github.com/khizmax/libcds/
-    Download: http://sourceforge.net/projects/libcds/files/
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
-
-    * Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// Copyright (c) 2006-2018 Maxim Khizhinsky
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #ifndef CDSLIB_GC_DHP_SMR_H
 #define CDSLIB_GC_DHP_SMR_H
 
 #include <exception>
 #include <cds/gc/details/hp_common.h>
-#include <cds/details/lib.h>
 #include <cds/threading/model.h>
 #include <cds/intrusive/free_list_selector.h>
 #include <cds/details/throw_exception.h>
-#include <cds/details/static_functor.h>
 #include <cds/details/marked_ptr.h>
 #include <cds/user_setup/cache_line.h>
 
@@ -61,11 +34,7 @@ namespace cds { namespace gc {
         //@cond
         struct guard_block: public cds::intrusive::FreeListImpl::node
         {
-            atomics::atomic<guard_block*>  next_block_;  // next block in the thread list
-
-            guard_block()
-                : next_block_( nullptr )
-            {}
+            guard_block*  next_block_ = nullptr;  // next block in the thread list
 
             guard* first()
             {
@@ -196,7 +165,7 @@ namespace cds { namespace gc {
                 // free all extended blocks
                 hp_allocator& a = hp_allocator::instance();
                 for ( guard_block* p = extended_list_.load( atomics::memory_order_relaxed ); p; ) {
-                    guard_block* next = p->next_block_.load( atomics::memory_order_relaxed );
+                    guard_block* next = p->next_block_;
                     a.free( p );
                     p = next;
                 }
@@ -221,7 +190,7 @@ namespace cds { namespace gc {
                 assert( free_head_ == nullptr );
 
                 guard_block* block = hp_allocator::instance().alloc();
-                block->next_block_.store( extended_list_.load( atomics::memory_order_relaxed ), atomics::memory_order_release );
+                block->next_block_ = extended_list_.load( atomics::memory_order_relaxed );
                 extended_list_.store( block, atomics::memory_order_release );
                 free_head_ = block->first();
                 CDS_HPSTAT( ++extend_call_count_ );
@@ -341,7 +310,7 @@ namespace cds { namespace gc {
                     }
 
                     // no free block
-                    // smr::scan() extend retired_array if needed
+                    // basic_smr::scan() extend retired_array if needed
                     return false;
                 }
 
@@ -356,7 +325,7 @@ namespace cds { namespace gc {
                 return ret;
             }
 
-        private: // called by smr
+        private: // called by basic_smr
             void init()
             {
                 if ( list_head_ == nullptr ) {
@@ -510,7 +479,7 @@ namespace cds { namespace gc {
             struct thread_record;
 
         public:
-            /// Returns the instance of Hazard Pointer \ref smr
+            /// Returns the instance of Hazard Pointer \ref basic_smr
             static smr& instance()
             {
 #       ifdef CDS_DISABLE_SMR_EXCEPTION
@@ -548,7 +517,7 @@ namespace cds { namespace gc {
                 construct( nInitialHazardPtrCount );
             }
 
-            /// Destroys global instance of \ref smr
+            /// Destroys global instance of \ref basic_smr
             /**
                 The parameter \p bDetachAll should be used carefully: if its value is \p true,
                 then the object destroyed automatically detaches all attached threads. This feature
@@ -638,7 +607,7 @@ namespace cds { namespace gc {
             CDS_EXPORT_API thread_record* alloc_thread_data();
 
             /// Free HP SMR thread-private data
-            CDS_EXPORT_API void free_thread_data( thread_record* pRec );
+            CDS_EXPORT_API void free_thread_data( thread_record* pRec, bool callHelpScan );
 
         private:
             static CDS_EXPORT_API smr* instance_;
@@ -807,15 +776,7 @@ namespace cds { namespace gc {
             template <typename T>
             T protect( atomics::atomic<T> const& toGuard )
             {
-                assert( guard_ != nullptr );
-
-                T pCur = toGuard.load(atomics::memory_order_acquire);
-                T pRet;
-                do {
-                    pRet = assign( pCur );
-                    pCur = toGuard.load(atomics::memory_order_acquire);
-                } while ( pRet != pCur );
-                return pCur;
+                return protect(toGuard, [](T p) { return p; });
             }
 
             /// Protects a converted pointer of type <tt> atomic<T*> </tt>
@@ -840,7 +801,7 @@ namespace cds { namespace gc {
             {
                 assert( guard_ != nullptr );
 
-                T pCur = toGuard.load(atomics::memory_order_acquire);
+                T pCur = toGuard.load(atomics::memory_order_relaxed);
                 T pRet;
                 do {
                     pRet = pCur;
@@ -993,14 +954,7 @@ namespace cds { namespace gc {
             template <typename T>
             T protect( size_t nIndex, atomics::atomic<T> const& toGuard )
             {
-                assert( nIndex < capacity());
-
-                T pRet;
-                do {
-                    pRet = assign( nIndex, toGuard.load(atomics::memory_order_acquire));
-                } while ( pRet != toGuard.load(atomics::memory_order_relaxed));
-
-                return pRet;
+                return protect(nIndex, toGuard, [](T p) { return p; });
             }
 
             /// Protects a pointer of type \p atomic<T*>
@@ -1027,8 +981,8 @@ namespace cds { namespace gc {
 
                 T pRet;
                 do {
-                    assign( nIndex, f( pRet = toGuard.load(atomics::memory_order_acquire)));
-                } while ( pRet != toGuard.load(atomics::memory_order_relaxed));
+                    assign( nIndex, f( pRet = toGuard.load(atomics::memory_order_relaxed)));
+                } while ( pRet != toGuard.load(atomics::memory_order_acquire));
 
                 return pRet;
             }
@@ -1449,7 +1403,7 @@ namespace cds { namespace gc {
         template <class Disposer, typename T>
         static void retire( T* p )
         {
-            if ( !dhp::smr::tls()->retired_.push( dhp::retired_ptr( p, cds::details::static_functor<Disposer, T>::call )))
+            if ( !dhp::smr::tls()->retired_.push( dhp::retired_ptr( p, +[]( void* p ) { Disposer()( static_cast<T*>( p )); })))
                 scan();
         }
 

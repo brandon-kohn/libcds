@@ -1,32 +1,7 @@
-/*
-    This file is a part of libcds - Concurrent Data Structures library
-
-    (C) Copyright Maxim Khizhinsky (libcds.dev@gmail.com) 2006-2017
-
-    Source code repo: http://github.com/khizmax/libcds/
-    Download: http://sourceforge.net/projects/libcds/files/
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
-
-    * Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// Copyright (c) 2006-2018 Maxim Khizhinsky
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #ifndef CDSLIB_INTRUSIVE_DETAILS_SPLIT_LIST_BASE_H
 #define CDSLIB_INTRUSIVE_DETAILS_SPLIT_LIST_BASE_H
@@ -40,6 +15,7 @@
 #include <cds/opt/hash.h>
 #include <cds/intrusive/free_list_selector.h>
 #include <cds/details/size_t_cast.h>
+#include <memory>
 
 namespace cds { namespace intrusive {
 
@@ -417,7 +393,7 @@ namespace cds { namespace intrusive {
             const size_t   m_nCapacity;   ///< Bucket table capacity
             table_entry *  m_Table;       ///< Bucket table
 
-            typedef typename allocator::template rebind< aux_node_type >::other aux_node_allocator;
+            typedef typename std::allocator_traits<allocator>::template rebind_alloc< aux_node_type > aux_node_allocator;
 
             aux_node_type*          m_auxNode;           ///< Array of pre-allocated auxiliary nodes
             atomics::atomic<size_t> m_nAuxNodeAllocated; ///< how many auxiliary node allocated
@@ -625,7 +601,7 @@ namespace cds { namespace intrusive {
             typedef cds::details::Allocator< table_entry, allocator > segment_allocator;
 
             // Aux node segment allocator
-            typedef typename allocator::template rebind<char>::other raw_allocator;
+            typedef typename std::allocator_traits< allocator >::template rebind_alloc<char> raw_allocator;
 
             //@endcond
 

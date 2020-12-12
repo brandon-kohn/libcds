@@ -1,9 +1,73 @@
 
 INCLUDE(CheckCXXSourceCompiles)
 
-if (NOT GTEST_INCLUDE_DIRS)
-   find_package(GTest REQUIRED)
+if(TARGET boost::system AND TARGET boost::thread)
+    link_libraries(boost::system boost::thread)
+else()
+    find_package(Boost 1.50 COMPONENTS system thread)
 endif()
+
+if(Boost_FOUND)
+    message("Boost: ${Boost_LIB_VERSION} in ${Boost_INCLUDE_DIRS}, lib ${Boost_LIBRARY_DIRS}")
+else()
+    message("Boost: Using CMake-fied boost")
+endif()
+
+include_directories(${Boost_INCLUDE_DIRS})
+
+function(strip_binary EXE_FILE )
+    if( ${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux" )
+        add_custom_command(TARGET ${EXE_FILE} POST_BUILD
+            WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH}
+            COMMAND ${CMAKE_OBJCOPY} --only-keep-debug ${EXE_FILE} ${EXE_FILE}.dbg
+            COMMAND ${CMAKE_STRIP} --strip-debug --strip-unneeded ${EXE_FILE}
+            COMMAND ${CMAKE_OBJCOPY} --add-gnu-debuglink ${EXE_FILE}.dbg ${EXE_FILE}
+            COMMAND tar -czf ${EXE_FILE}.dbg.tgz ${EXE_FILE}.dbg
+            COMMAND rm -f ${EXE_FILE}.dbg
+            COMMENT "Strip ${EXE_FILE}"
+        )
+    endif()
+endfunction()
+
+if (NOT GTEST_INCLUDE_DIRS)
+   find_package(GTest)
+
+    if (NOT GTEST_FOUND)
+        # Download and make gtest library
+        # Download and unpack googletest at configure time
+        configure_file(CMakeLists.txt.gtest googletest-download/CMakeLists.txt)
+
+        execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+          RESULT_VARIABLE result
+          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+
+        if(result)
+          message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+        endif()
+
+        execute_process(COMMAND ${CMAKE_COMMAND} --build .
+          RESULT_VARIABLE result
+          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+
+        if(result)
+          message(FATAL_ERROR "Build step for googletest failed: ${result}")
+        endif()
+
+        # Prevent overriding the parent project's compiler/linker
+        # settings on Windows
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+        # Add googletest directly to our build. This defines
+        # the gtest and gtest_main targets.
+        add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+                         ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+                         EXCLUDE_FROM_ALL)
+                         
+        set(GTEST_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include")
+        set(GTEST_LIBRARIES "gtest_main")
+    endif()
+endif()
+
 message("GTest: ${GTEST_INCLUDE_DIRS}, lib: ${GTEST_LIBRARIES}")
 
 include_directories(
@@ -21,6 +85,12 @@ set(CDS_TEST_LIBRARIES
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGTEST_LANG_CXX11") 
+
+if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0.0")
+    #   gcc 4.8 - 6: disable noise -Wunused-local-typedefs
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-local-typedefs")
+endif()
+
 
 # Check if gtest INSTANTIATE_TEST_CASE_P macro supports 4th arg
 # The optional last argument to INSTANTIATE_TEST_CASE_P allows the user
@@ -81,10 +151,10 @@ if(CDSTEST_HAVE_BYTESWAP_H)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCDSTEST_HAVE_BYTESWAP_H") 
 endif()
 
-if(ENABLE_UNIT_TEST)
+if(LIBCDS_ENABLE_UNIT_TEST)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/unit)
 endif()
-if(ENABLE_STRESS_TEST)
+if(LIBCDS_ENABLE_STRESS_TEST)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/stress)
 endif()
 

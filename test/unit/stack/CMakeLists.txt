@@ -6,6 +6,7 @@ set(CDSGTEST_STACK_SOURCES
     intrusive_fcstack.cpp
     intrusive_treiber_stack_dhp.cpp
     intrusive_treiber_stack_hp.cpp
+    intrusive_treiber_stack_custom_hp.cpp
     treiber_stack_dhp.cpp
     treiber_stack_hp.cpp
 )
@@ -16,5 +17,5 @@ include_directories(
 
 add_executable(${PACKAGE_NAME} ${CDSGTEST_STACK_SOURCES})
 target_link_libraries(${PACKAGE_NAME} ${CDS_TEST_LIBRARIES})
-
+strip_binary(${PACKAGE_NAME})
 add_test(NAME ${PACKAGE_NAME} COMMAND ${PACKAGE_NAME} WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH})

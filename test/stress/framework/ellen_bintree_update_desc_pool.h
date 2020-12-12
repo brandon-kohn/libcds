@@ -1,32 +1,7 @@
-/*
-    This file is a part of libcds - Concurrent Data Structures library
-
-    (C) Copyright Maxim Khizhinsky (libcds.dev@gmail.com) 2006-2017
-
-    Source code repo: http://github.com/khizmax/libcds/
-    Download: http://sourceforge.net/projects/libcds/files/
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
-
-    * Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// Copyright (c) 2006-2018 Maxim Khizhinsky
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #ifndef CDSUNIT_ELLEN_BINTREE_UPDATE_DESC_POOL_H
 #define CDSUNIT_ELLEN_BINTREE_UPDATE_DESC_POOL_H
@@ -35,6 +10,7 @@
 #include <cds/container/details/ellen_bintree_base.h>
 #include <cds/memory/vyukov_queue_pool.h>
 #include <cds/memory/pool_allocator.h>
+#include <memory>
 
 namespace ellen_bintree_pool {
     typedef cds::container::ellen_bintree::node_types< cds::urcu::gc< cds::urcu::general_instant<> >, int > node_types; // fake
@@ -102,10 +78,10 @@ namespace ellen_bintree_pool {
 
     template <typename T, typename Alloc = CDS_DEFAULT_ALLOCATOR>
     class internal_node_allocator
-        : public Alloc::template rebind< T >::other
+        : public std::allocator_traits<Alloc>::template rebind_alloc< T >
         , internal_node_counter
     {
-        typedef typename Alloc::template rebind< T >::other  base_class;
+        typedef typename std::allocator_traits<Alloc>::template rebind_alloc< T > base_class;
     public:
         template <typename Other>
         struct rebind {
@@ -115,14 +91,14 @@ namespace ellen_bintree_pool {
         T * allocate( size_t n, void const * pHint = nullptr )
         {
             internal_node_counter::onAlloc();
-            T * p = base_class::allocate( n, pHint );
+            T * p = std::allocator_traits<base_class>::allocate( *static_cast<base_class*>( this ), n, pHint );
             return p;
         }
 
         void deallocate( T * p, size_t n )
         {
             internal_node_counter::onFree();
-            return base_class::deallocate( p, n );
+            std::allocator_traits<base_class>::deallocate( *static_cast<base_class*>( this ), p, n );
         }
     };
 

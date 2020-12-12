@@ -1,8 +1,10 @@
 CDS C++ library
 ===============
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/7391e3f221244134bd343cdde7b7deb6)](https://app.codacy.com/manual/khizmax/libcds?utm_source=github.com&utm_medium=referral&utm_content=khizmax/libcds&utm_campaign=Badge_Grade_Settings)
 [![GitHub version](https://badge.fury.io/gh/khizmax%2Flibcds.svg)](http://badge.fury.io/gh/khizmax%2Flibcds)
-[![License](https://img.shields.io/:license-bsd-blue.svg?style=round-square)](https://github.com/khizmax/libcds/blob/master/LICENSE)
+[![License](https://img.shields.io/:license-boost-blue.svg?style=round-square)](https://github.com/khizmax/libcds/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/khizmax/libcds.svg?branch=dev)](https://travis-ci.org/khizmax/libcds)
+[![Build status](https://ci.appveyor.com/api/projects/status/github/khizmax/libcds?branch=dev&svg=true)](https://ci.appveyor.com/project/khizmax/libcds)
 
 <!---
 The coverity dataset is about 4G of size and about 1G in compressed state so it is a problem to upload it to the coverity server
@@ -37,8 +39,6 @@ Download the latest release from http://sourceforge.net/projects/libcds/files/
 
 See online doxygen-generated doc here: http://libcds.sourceforge.net/doc/cds-api/index.html
 
-Evolution of libcds (Gource visualization by Landon Wilkins): https://www.youtube.com/watch?v=FHaJvVdmJ0w
-
 **How to build**
    - *nix: [use CMake](build/cmake/readme.md)
    - Windows: use MS Visual C++ 2017 project
@@ -51,7 +51,19 @@ in GCC/clang (for MS VC++ compiler DCAS is not supported):
   - `-DCDS_DISABLE_64BIT_ATOMIC` - for 32bit build
 
 **All your projects AND libcds MUST be compiled with the same flags - either with DCAS support or without it.**
+  
+**Building libcds -use vcpkg
+
+You can download and install libcds using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
    
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg
+    ./bootstrap-vcpkg.sh
+    ./vcpkg integrate install
+    vcpkg install libcds
+    
+The libcds port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+
    
 **Pull request requirements**
 - Pull-request to *master* branch will be unconditionally rejected
@@ -116,7 +128,7 @@ References
 
 *Tree*
   - *EllenBinTree*: [2010] F.Ellen, P.Fatourou, E.Ruppert, F.van Breugel "Non-blocking Binary Search Tree"
-        [pdf](http://www.cs.vu.nl/~tcs/cm/faith.pdf)
+        [pdf](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.232.7881&rep=rep1&type=pdf)
   - *BronsonAVLTreeMap* - lock-based fine-grained AVL-tree implementation: 
         [2010] Nathan Bronson, Jared Casper, Hassan Chafi, Kunle Olukotun "A Practical Concurrent Binary Search Tree"
         [pdf](https://ppl.stanford.edu/papers/ppopp207-bronson.pdf)
@@ -127,7 +139,7 @@ References
              [pdf](http://www.research.ibm.com/people/m/michael/podc-2002.pdf)
     * [2003] Maged M.Michael "Hazard Pointers: Safe memory reclamation for lock-free objects" 
              [pdf](http://www.research.ibm.com/people/m/michael/ieeetpds-2004.pdf)
-    * [2004] Andrei Alexandrescy, Maged Michael "Lock-free Data Structures with Hazard Pointers" 
+    * [2004] Andrei Alexandrescu, Maged Michael "Lock-free Data Structures with Hazard Pointers" 
              [pdf](http://www.researchgate.net/profile/Andrei_Alexandrescu/publication/252573326_Lock-Free_Data_Structures_with_Hazard_Pointers/links/0deec529e7804288fe000000.pdf)
   - User-space RCU
     * [2009] M.Desnoyers "Low-Impact Operating System Tracing" PhD Thesis,
