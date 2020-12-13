@@ -8,6 +8,8 @@
 
 #include <pthread.h>
 #include <signal.h>
+#include <limits>
+#include <cstdint>
 
 namespace cds { namespace OS {
     /// posix-related wrappers
@@ -20,6 +22,16 @@ namespace cds { namespace OS {
         static inline ThreadId get_current_thread_id()
         {
             return pthread_self();
+        }
+        /// Get current thread id as an integral type.
+        static inline std::uint64_t get_current_integral_thread_id()
+        {
+            auto tid = pthread_self();
+            std::uint64_t rtid;
+            auto r = pthread_threadid_np(tid, &rtid);
+            if(!r)
+                return rtid;
+            return (std::numeric_limits<std::uint64_t>::max)();
         }
     }    // namespace posix
 
