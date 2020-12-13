@@ -23,6 +23,7 @@ namespace cds { namespace OS {
         {
             return pthread_self();
         }
+#ifdef __APPLE__
         /// Get current thread id as an integral type.
         static inline std::uint64_t get_current_integral_thread_id()
         {
@@ -33,6 +34,13 @@ namespace cds { namespace OS {
                 return rtid;
             return (std::numeric_limits<std::uint64_t>::max)();
         }
+#else
+        /// Get current thread id as an integral type.
+        static inline ThreadId get_current_integral_thread_id()
+        {
+            return get_current_thread_id();
+        }
+#endif
     }    // namespace posix
 
     //@cond
