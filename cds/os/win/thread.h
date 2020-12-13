@@ -23,6 +23,12 @@ namespace cds { namespace OS {
         {
             return ::GetCurrentThreadId();
         }
+
+        /// Get current thread id explicitly in an integral format.
+        static inline ThreadId get_current_integral_thread_id()
+        {
+            return ::GetCurrentThreadId();
+        }
     }    // namespace Win32
 
     //@cond
