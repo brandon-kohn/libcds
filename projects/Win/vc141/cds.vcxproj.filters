@@ -185,6 +185,9 @@
     <ClCompile Include="..\..\..\src\dhp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\hp_thread_local.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\cds\init.h">
@@ -218,9 +221,6 @@
       <Filter>Header Files\cds\details</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cds\details\marked_ptr.h">
-      <Filter>Header Files\cds\details</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\cds\details\trivial_assign.h">
       <Filter>Header Files\cds\details</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cds\details\type_padding.h">
@@ -748,9 +748,6 @@
     <ClInclude Include="..\..\..\cds\container\details\make_skip_list_map.h">
       <Filter>Header Files\cds\container\details</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\cds\details\static_functor.h">
-      <Filter>Header Files\cds\details</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\cds\intrusive\michael_list_rcu.h">
       <Filter>Header Files\cds\intrusive</Filter>
     </ClInclude>
@@ -900,9 +897,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\cds\compiler\icl\defs.h">
       <Filter>Header Files\cds\compiler\icl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\cds\details\lib.h">
-      <Filter>Header Files\cds\details</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cds\container\ellen_bintree_map_hp.h">
       <Filter>Header Files\cds\container</Filter>
@@ -1259,6 +1253,12 @@
       <Filter>Header Files\cds\container</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\cds\details\size_t_cast.h">
+      <Filter>Header Files\cds\details</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cds\gc\hp_membar.h">
+      <Filter>Header Files\cds\gc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\cds\details\tls_holder.h">
       <Filter>Header Files\cds\details</Filter>
     </ClInclude>
   </ItemGroup>

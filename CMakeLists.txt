@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 cmake_policy(SET CMP0016 NEW)
 if(POLICY CMP0042)
@@ -7,30 +7,23 @@ endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/cmake ${CMAKE_MODULE_PATH})
 include(TargetArch)
+include(CheckIncludeFileCXX)
 
 project(cds)
 
-set(PROJECT_VERSION 2.4.0)
+set(PROJECT_VERSION 2.3.3)
 
 # Options
-option(WITH_TESTS "Build unit tests" OFF)
-option(WITH_TESTS_COVERAGE "Analyze test coverage using gcov (only for gcc)" OFF)
-option(WITH_BOOST_ATOMIC "Use boost atomics (only for boost >= 1.54)" OFF)
-option(WITH_ASAN "Build ASan+UBSan instrumented code" OFF)
-option(WITH_TSAN "Build TSan instrumented code" OFF)
-option(ENABLE_UNIT_TEST "Enable unit test" ON)
-option(ENABLE_STRESS_TEST "Enable stress test" ON)
+option(LIBCDS_WITH_TESTS "Build unit tests" OFF)
+option(LIBCDS_WITH_TESTS_COVERAGE "Analyze test coverage using gcov (only for gcc)" OFF)
+option(LIBCDS_WITH_BOOST_ATOMIC "Use boost atomics (only for boost >= 1.54)" OFF)
+option(LIBCDS_WITH_ASAN "Build ASan+UBSan instrumented code" OFF)
+option(LIBCDS_WITH_TSAN "Build TSan instrumented code" OFF)
+option(LIBCDS_ENABLE_UNIT_TEST "Enable unit test" ON)
+option(LIBCDS_ENABLE_STRESS_TEST "Enable stress test" ON)
 set(CMAKE_TARGET_ARCHITECTURE "" CACHE string "Target build architecture")
 
 find_package(Threads)
-
-if(TARGET boost::system AND TARGET boost::thread)
-    link_libraries(boost::system boost::thread)
-else()
-    find_package(Boost 1.50 COMPONENTS system thread)
-endif()
-
-include_directories(${Boost_INCLUDE_DIRS})
 
 if(NOT CMAKE_TARGET_ARCHITECTURE)
     target_architecture(CMAKE_TARGET_ARCHITECTURE)
@@ -41,20 +34,24 @@ if(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_DARWIN_C_SOURCE")
 endif()
 
-if(WITH_BOOST_ATOMIC)
+if(MSVC)
+    add_definitions(-DCDS_BUILD_LIB)
+endif()
+
+if(LIBCDS_WITH_BOOST_ATOMIC)
+    if(TARGET boost::atomic)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCDS_USE_BOOST_ATOMIC")
+        link_libraries(boost::atomic)
+    else()
+        find_package(Boost 1.53 COMPONENTS atomic)
     if(Boost_FOUND)
-        if(${Boost_MINOR_VERSION} GREATER 53)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCDS_USE_BOOST_ATOMIC")
             message(STATUS "Boost version allows using of boost.atomic: activated")
         endif()
-    else()
-        if(TARGET boost::atomic)
-            link_libraries(boost::atomic)
         endif()
-    endif()
-endif(WITH_BOOST_ATOMIC)
+endif(LIBCDS_WITH_BOOST_ATOMIC)
 
-if(WITH_ASAN)
+if(LIBCDS_WITH_ASAN)
     if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         set(CMAKE_CXX_FLAGS_DEBUG "-D_DEBUG")
         set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
@@ -64,9 +61,9 @@ if(WITH_ASAN)
     else()
         message(WARNING "Compiler does not support AddressSanitizer")
     endif()
-endif(WITH_ASAN)
+endif(LIBCDS_WITH_ASAN)
 
-if(WITH_TSAN)
+if(LIBCDS_WITH_TSAN)
     if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         set(CMAKE_CXX_FLAGS_DEBUG "-D_DEBUG")
         set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
@@ -76,9 +73,9 @@ if(WITH_TSAN)
     else()
         message(WARNING "Compiler does not support ThreadSanitizer")
     endif()
-endif(WITH_TSAN)
+endif(LIBCDS_WITH_TSAN)
 
-if(WITH_TESTS_COVERAGE)
+if(LIBCDS_WITH_TESTS_COVERAGE)
     if(CMAKE_COMPILER_IS_GNUCXX)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
@@ -87,7 +84,7 @@ if(WITH_TESTS_COVERAGE)
     else()
         message(WARNING "Compiler is not GNU gcc! Test coverage couldn't be analyzed")
     endif()
-endif(WITH_TESTS_COVERAGE)
+endif(LIBCDS_WITH_TESTS_COVERAGE)
 
 set(CDS_SHARED_LIBRARY ${PROJECT_NAME})
 set(CDS_STATIC_LIBRARY ${PROJECT_NAME}-s)
@@ -108,14 +105,14 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Default build type to Debug" FORCE)
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    string(REGEX MATCHALL "-std=[^ ]+" cxx_std_found ${CMAKE_CXX_FLAGS} " dummy@rg")
-    if(cxx_std_found)
-        message("C++ std: ${cxx_std_found}")
-    else()
-        list(APPEND LIBCDS_PUBLIC_CXX_FLAGS "-std=c++11")
-        message("C++ std: -std=c++11 (default)")
-    endif()
+# if the user passed LIBCDS_CXX_STANDARD on the command line, use it
+# otherwise default to cxx 11
+if (NOT LIBCDS_CXX_STANDARD)
+    set(LIBCDS_CXX_STANDARD 11 CACHE string "Preferred C++ standard")
+endif()
+set(CMAKE_CXX_STANDARD ${LIBCDS_CXX_STANDARD})
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
 
     list(APPEND LIBCDS_PRIVATE_CXX_FLAGS "-Wall" "-Wextra" "-pedantic")
 
@@ -130,14 +127,21 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -latomic")
         endif()
     endif()
+endif()
 
-    if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0.0")
-        #   gcc 4.8 - 6: disable noise -Wunused-local-typedefs
-        list(APPEND LIBCDS_PRIVATE_CXX_FLAGS "-Wno-unused-local-typedefs")
-    endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "AIX")
+    set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> -q -c ${CMAKE_STATIC_LINKER_FLAGS} -o <TARGET> <OBJECTS>")
+    list(APPEND LIBCDS_PRIVATE_CXX_FLAGS "-Wl,-G")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-brtl")
 endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
+
+CHECK_INCLUDE_FILE_CXX(linux/membarrier.h CDS_HAVE_LINUX_MEMBARRIER_H CMAKE_CXX_FLAGS)
+
+# To see what compiler flags we use
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 message("Build type -- ${CMAKE_BUILD_TYPE}")
 message("Compiler version: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
@@ -150,22 +154,13 @@ else()
 endif()
 message("Exe flags: ${CMAKE_EXE_LINKER_FLAGS}")
 
-if(Boost_FOUND)
-    message("Boost: ${Boost_LIB_VERSION} in ${Boost_INCLUDE_DIRS}, lib ${Boost_LIBRARY_DIRS}")
-else()
-    message("Boost: Using CMake-fied boost")
-endif()
-
-if(CMAKE_SYSTEM_NAME STREQUAL "AIX")
-    set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> -q -c ${CMAKE_STATIC_LINKER_FLAGS} -o <TARGET> <OBJECTS>")
-endif()
-
 # Component names for separate distribution in rpms, debs etc.
 set(LIBRARIES_COMPONENT lib)
 set(HEADERS_COMPONENT devel)
 
 set(SOURCES src/init.cpp
             src/hp.cpp
+            src/hp_thread_local.cpp
             src/dhp.cpp
             src/urcu_gp.cpp
             src/urcu_sh.cpp
@@ -183,10 +178,21 @@ add_library(${CDS_SHARED_LIBRARY} SHARED ${SOURCES})
 target_compile_definitions(${CDS_SHARED_LIBRARY} PRIVATE -DCDS_BUILD_LIB)
 set_target_properties(${CDS_SHARED_LIBRARY} PROPERTIES VERSION ${PROJECT_VERSION}
         DEBUG_POSTFIX "_d")
+set_property(TARGET ${CDS_SHARED_LIBRARY} PROPERTY CXX_STANDARD ${LIBCDS_CXX_STANDARD})
+
+if(MINGW)
+    set_target_properties(${CDS_SHARED_LIBRARY} PROPERTIES DEFINE_SYMBOL CDS_BUILD_LIB)
+endif()
+
 add_library(${CDS_STATIC_LIBRARY} STATIC ${SOURCES})
 target_compile_definitions(${CDS_STATIC_LIBRARY} PRIVATE -DCDS_BUILD_STATIC)
 
 set_target_properties(${CDS_STATIC_LIBRARY} PROPERTIES DEBUG_POSTFIX "_d")
+set_property(TARGET ${CDS_STATIC_LIBRARY} PROPERTY CXX_STANDARD ${LIBCDS_CXX_STANDARD})
+if(MINGW)
+    target_compile_definitions(${CDS_STATIC_LIBRARY} PRIVATE CDS_BUILD_STATIC_LIB)
+endif()
+
 target_link_libraries(${CDS_SHARED_LIBRARY} PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(${CDS_STATIC_LIBRARY} PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 target_include_directories(${CDS_SHARED_LIBRARY} INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
@@ -201,14 +207,16 @@ target_compile_options(${CDS_STATIC_LIBRARY} PRIVATE "${LIBCDS_PRIVATE_CXX_FLAGS
 install(TARGETS ${CDS_SHARED_LIBRARY} EXPORT LibCDSConfig RUNTIME DESTINATION bin ARCHIVE DESTINATION lib${LIB_SUFFIX} LIBRARY DESTINATION lib${LIB_SUFFIX} COMPONENT ${LIBRARIES_COMPONENT} NAMELINK_SKIP)
 install(TARGETS ${CDS_SHARED_LIBRARY} EXPORT LibCDSConfig RUNTIME DESTINATION bin ARCHIVE DESTINATION lib${LIB_SUFFIX} LIBRARY DESTINATION lib${LIB_SUFFIX} COMPONENT ${HEADERS_COMPONENT} NAMELINK_ONLY)
 install(TARGETS ${CDS_STATIC_LIBRARY} EXPORT LibCDSConfig DESTINATION lib${LIB_SUFFIX} COMPONENT ${LIBRARIES_COMPONENT})
-install(EXPORT LibCDSConfig FILE LibCDSConfig.cmake NAMESPACE LibCDS:: DESTINATION lib/cmake/LibCDS)
+
+# STK doesn't need the cmake export descriptors.
+#install(EXPORT LibCDSConfig FILE LibCDSConfig.cmake NAMESPACE LibCDS:: DESTINATION lib/cmake/LibCDS)
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/cds DESTINATION include COMPONENT ${HEADERS_COMPONENT})
 
-if(WITH_TESTS)
+if(LIBCDS_WITH_TESTS)
     enable_testing()
     add_subdirectory(${PROJECT_SOURCE_DIR}/test)
     message(STATUS "Build tests: activated")
-endif(WITH_TESTS)
+endif(LIBCDS_WITH_TESTS)
 
 ### FOR PACKAGING in RPM, TGZ, DEB, NSYS...###############################################################################
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})

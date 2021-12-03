@@ -1,9 +1,23 @@
-2.4.0
+3.0.0
+    General release
+    - Adapt libcds for HPX (https://github.com/STEllAR-GROUP/hpx), thanks to Alexander Gaev (https://github.com/Krock21rus) for the adaptation
+    - added support for GCC-10, GCC-9, Clang-8, Clang-9 (fixed warnings)
+
+2.3.3 31.12.2018
+    Maintenance release
+    - Minimum CMake version is 3.0.2
+    - Changed software license from BSD to Boost
+    - Removed '#pragma lib' for Windows build
+    - Bugfix and minor improvements
+
+2.3.2 31.12.2017
+    Maintenance release
     - Added: apply( Func f ) method to containers based on flat combining.
       This method allows to execute any function over underlying container
       in exclusive mode.
     - Removed: -fno-strict-aliasing requirement
     - Fixed: a serious bug in WeakRingBuffer::front()
+    - Fixed: memcpy bug in CuckooHash with store_hash feature
 
 2.3.1 01.09.2017
     Maintenance release

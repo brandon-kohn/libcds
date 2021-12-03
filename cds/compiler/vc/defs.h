@@ -1,32 +1,7 @@
-/*
-    This file is a part of libcds - Concurrent Data Structures library
-
-    (C) Copyright Maxim Khizhinsky (libcds.dev@gmail.com) 2006-2017
-
-    Source code repo: http://github.com/khizmax/libcds/
-    Download: http://sourceforge.net/projects/libcds/files/
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright notice, this
-      list of conditions and the following disclaimer.
-
-    * Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// Copyright (c) 2006-2018 Maxim Khizhinsky
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #ifndef CDSLIB_COMPILER_VC_DEFS_H
 #define CDSLIB_COMPILER_VC_DEFS_H
@@ -87,6 +62,11 @@
 #   define CDS_PROCESSOR_ARCH   CDS_PROCESSOR_AMD64
 #   define CDS_PROCESSOR__NAME  "AMD64"
 #   define CDS_PROCESSOR__NICK  "amd64"
+#elif _M_ARM64
+#   define CDS_BUILD_BITS       64
+#   define CDS_PROCESSOR_ARCH   CDS_PROCESSOR_ARM8
+#   define CDS_PROCESSOR__NAME  "ARM64"
+#   define CDS_PROCESSOR__NICK  "arm64"
 #else
 #   define CDS_BUILD_BITS        -1
 #   define CDS_PROCESSOR_ARCH    CDS_PROCESSOR_UNKNOWN
@@ -135,6 +115,26 @@
 #   define CDS_EXCEPTION_ENABLED
 #endif
 
+    /*
+        MSVC does not support inlining of thread_local static data members in class for DLL.
+        Example:
+        // .h
+        class storage
+        {
+        public:
+            record& get()
+            {
+                return tls_;
+            }
+
+        private:
+            static thread_local record tls_;
+        };
+
+        // .cpp (DLL)
+        thread_local record storage::tls_
+    */
+#define CDS_DISABLE_CLASS_TLS_INLINE
 
 // double-width CAS support
 //#define CDS_DCAS_SUPPORT
